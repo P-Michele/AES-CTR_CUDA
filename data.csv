@@ -1,0 +1,5 @@
+GPU Test with file /content/test_1GB.bin, Time: 8069.63 ms
+GPU Test with file /content/test_2GB.bin, Time: 28754.7 ms
+GPU Test with file /content/test_4GB.bin, Time: 56304.9 ms
+GPU Test with file /content/test_8GB.bin, Time: 116319 ms
+GPU Test with file /content/test_16GB.bin, Time: 242819 ms
