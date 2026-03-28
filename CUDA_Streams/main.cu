@@ -11,7 +11,8 @@ using namespace std;
 
 #define BLOCK_SIZE 256
 #define AES_BLOCK_SIZE 16
-#define BUFFER_SIZE (64 * 1024 * 1024) // 64MB
+#define BUFFER_SIZE (64 * 1024 * 1024) 
+#define NUM_STREAMS 2
 
 uint64_t chunkIndex = 0;
 
@@ -40,38 +41,58 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    size_t bufferSize = 67108864;
-    uint8_t* h_buffer;
-    uint8_t* d_buffer;
+    size_t bufferSize = BUFFER_SIZE;
+    
+    cudaStream_t streams[NUM_STREAMS];
+    uint8_t* h_buffer[NUM_STREAMS];
+    uint8_t* d_buffer[NUM_STREAMS];
 
-    // Allocate Pinned memory to speedup data transfer between CPU and GPU
-    cudaError_t err = cudaMallocHost<uint8_t>((void**)&h_buffer, bufferSize);
-    checkCudaError(err, "Failed to allocate host memory");
-
-    err = cudaMalloc((void**)&d_buffer, bufferSize);
-    checkCudaError(err, "Failed to allocate device memory");
-
-    while (fin.read(reinterpret_cast<char*>(h_buffer), bufferSize) || fin.gcount() > 0) {
-        std::streamsize bytesRead = fin.gcount();
-        //Compute number of 16 bytes blocks
-        size_t totalBlocks = (static_cast<size_t>(bytesRead) + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
-        //Compute number of thread blocks needed to process all the data
-        int numBlocks = (totalBlocks + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-        err = cudaMemcpy(d_buffer, h_buffer, bytesRead, cudaMemcpyHostToDevice);
-        checkCudaError(err, "Failed to copy data to GPU");
-
-        encryptCtr<<<numBlocks, BLOCK_SIZE>>>(d_buffer, d_buffer, bytesRead, totalBlocks, (chunkIndex * (BUFFER_SIZE / AES_BLOCK_SIZE)));
-        chunkIndex++;
-
-        err = cudaMemcpy(h_buffer, d_buffer, bytesRead, cudaMemcpyDeviceToHost);
-        checkCudaError(err, "Failed to copy data back to CPU");
-
-        fout.write(reinterpret_cast<char*>(h_buffer), bytesRead);
+    for (int i = 0; i < NUM_STREAMS; i++) {
+        cudaStreamCreate(&streams[i]);
+        
+        cudaError_t err = cudaMallocHost<uint8_t>((void**)&h_buffer[i], bufferSize);
+        checkCudaError(err, "Failed to allocate host memory");
+        
+        err = cudaMalloc((void**)&d_buffer[i], bufferSize);
+        checkCudaError(err, "Failed to allocate device memory");
     }
 
-    cudaFreeHost(h_buffer);
-    cudaFree(d_buffer);
+    int sIdx = 0;
+    size_t bytesRead[NUM_STREAMS] = {0, 0};
+
+    fin.read(reinterpret_cast<char*>(h_buffer[0]), bufferSize);
+    bytesRead[0] = fin.gcount();
+
+    while (bytesRead[sIdx] > 0) {
+        int nextIdx = (sIdx + 1) % NUM_STREAMS;
+
+        size_t totalBlocks = (bytesRead[sIdx] + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE;
+        int numBlocks = (totalBlocks + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+        cudaMemcpyAsync(d_buffer[sIdx], h_buffer[sIdx], bytesRead[sIdx], cudaMemcpyHostToDevice, streams[sIdx]);
+        
+        encryptCtr<<<numBlocks, BLOCK_SIZE, 0, streams[sIdx]>>>(d_buffer[sIdx], d_buffer[sIdx], bytesRead[sIdx], totalBlocks, (chunkIndex * (BUFFER_SIZE / AES_BLOCK_SIZE)));
+        
+        cudaMemcpyAsync(h_buffer[sIdx], d_buffer[sIdx], bytesRead[sIdx], cudaMemcpyDeviceToHost, streams[sIdx]);
+
+        chunkIndex++;
+
+        fin.read(reinterpret_cast<char*>(h_buffer[nextIdx]), bufferSize);
+        bytesRead[nextIdx] = fin.gcount();
+
+        cudaStreamSynchronize(streams[sIdx]);
+        
+        fout.write(reinterpret_cast<char*>(h_buffer[sIdx]), bytesRead[sIdx]);
+
+        sIdx = nextIdx;
+    }
+
+    for (int i = 0; i < NUM_STREAMS; i++) {
+        cudaStreamDestroy(streams[i]);
+        cudaFreeHost(h_buffer[i]);
+        cudaFree(d_buffer[i]);
+    }
+
     fin.close();
     fout.close();
 
