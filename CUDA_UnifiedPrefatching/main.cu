@@ -7,6 +7,7 @@
 #include <vector>
 #include <chrono>
 #include "aes.cuh"
+#include <filesystem>
 
 using namespace std;
 
@@ -93,7 +94,7 @@ int main(int argc, char* argv[]) {
     std::chrono::duration<double, std::milli> duration = end - start;
     std::cout << "Cifrato con successo. Tempo impiegato: " << duration.count() << " ms" << std::endl;
 
-    fout.open("/content/data.csv", std::ios::app);
+    fout.open(std::filesystem::current_path() / "data.csv", std::ios::app);
     if (fout.is_open()) {
         fout << "GPU Test with file " << path << ", Time: " << duration.count() << " ms" << std::endl;
         fout.close();

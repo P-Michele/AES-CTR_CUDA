@@ -12,9 +12,11 @@ try:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
+    print(f"Reading data from: {file_path}")
+
     with open(file_path, 'r') as f:
         for line in f:
-            if "GPU Test" or "CPU Test" in line:
+            if "GPU Test" in line or "CPU Test" in line:
                 match = re.search(regex_pattern, line)
                 if match:
                     size_gb = int(match.group(1))
@@ -50,7 +52,7 @@ try:
 
     plt.xlabel('Dataset Size', fontsize=12, fontweight='bold')
     plt.ylabel('Execution Time (ms)', fontsize=12, fontweight='bold')
-    plt.title('GPU Performance: Actual vs. Ideal Linear Scaling', fontsize=15, pad=20)
+    plt.title('Performance: Actual vs. Ideal Linear Scaling', fontsize=15, pad=20)
     plt.legend(loc='upper left')
     plt.grid(axis='y', linestyle=':', alpha=0.5)
     

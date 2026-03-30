@@ -7,6 +7,7 @@
 #include <fstream>
 #include <vector>
 #include <chrono>
+#include <filesystem>
 
 using namespace std;
 
@@ -57,7 +58,7 @@ int main(int argc, char* argv[]) {
     std::chrono::duration<double, std::milli> duration = end - start;
     std::cout << "Cifrato con successo. Tempo impiegato: " << duration.count() << " ms" << std::endl;
 
-    fout.open("C:\\Users\\perin\\Desktop\\data.csv", std::ios::app);
+    fout.open(filesystem::current_path() / "data.csv", std::ios::app);
     if (fout.is_open()) {
         fout << "CPU Test with file " << argv[1] << ", Time: " << duration.count() << " ms" << std::endl;
         fout.close();
