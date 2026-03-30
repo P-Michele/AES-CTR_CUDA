@@ -1,4 +1,5 @@
 /.vscode
-/*.obj
-/*.o
-/*.bin
+*.obj
+*.o
+*.bin
+*.csv
