@@ -36,8 +36,8 @@ uint8_t roundKeys[176];
 
 
 // Prototypes
-__device__ void encryptBlock(uint8_t* state);
-__device__ void subBytes(uint8_t* state);
+__device__ void encryptBlock(uint8_t* state, uint8_t* s_sbox);
+__device__ void subBytes(uint8_t* state, uint8_t* s_sbox);
 __device__ void shiftRows(uint8_t* state);
 __device__ void addRoundKey(uint8_t* state, const uint8_t* roundKey);
 __device__ void mixColumns(uint8_t* state);

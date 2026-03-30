@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < NUM_STREAMS; i++) {
         cudaStreamCreate(&streams[i]);
         
-        cudaError_t err = cudaMallocHost<uint8_t>((void**)&h_buffer[i], bufferSize);
+        cudaError_t err = cudaMallocHost((void**)&h_buffer[i], bufferSize);
         checkCudaError(err, "Failed to allocate host memory");
         
         err = cudaMalloc((void**)&d_buffer[i], bufferSize);

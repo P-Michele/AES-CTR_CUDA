@@ -12,8 +12,7 @@ using namespace std;
 
 #define BLOCK_SIZE 256
 #define AES_BLOCK_SIZE 16
-#define BUFFER_SIZE (64 * 1024 * 1024)#define BLOCK_SIZE 256
-#define AES_BLOCK_SIZE 16 // 64MB
+#define BUFFER_SIZE (64 * 1024 * 1024) // 64MB 
 
 uint64_t chunkIndex = 0;
 
